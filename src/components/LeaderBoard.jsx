@@ -18,6 +18,10 @@ class LeaderBoard extends Component{
     this.handleSearchSubmit = this.handleSearchSubmit.bind(this);
     this.handleSearchChange = this.handleSearchChange.bind(this);
   }
+  componentDidMount(){
+    this.getAccounts();
+    this.getAllTransactions();
+  }
 
   async getAllTransactions(nBlocksToSearch){
     this.setState({allTransactions: []});
@@ -57,18 +61,35 @@ class LeaderBoard extends Component{
           matchedTX = matchedTX.concat([tx]);
         }
       }
+      matchedTX = this.sortTransactionsByValue(matchedTX);
       this.setState({
         matchedTransactions: matchedTX,
       });
   }
+
   async getAccounts(){
     var accounts = [];
     accounts = await this.state.web3.eth.getAccounts();
     this.setState({accounts: accounts,});
   }
-  componentDidMount(){
-    this.getAccounts();
-    this.getAllTransactions();
+  //simple quicksort, but sorting big to small
+  sortTransactionsByValue(transactions){
+
+    if (transactions.length < 2){
+      return transactions;
+    }
+    var pivot = parseInt(transactions[0].value);
+    var lesser = [];
+    var greater = [];
+
+    for (var i = 1; i < transactions.length; i++){
+      if (parseInt(transactions[i].value) < pivot){
+        lesser.push(transactions[i]);
+      } else {
+        greater.push(transactions[i]);
+      }
+    }
+    return this.sortTransactionsByValue(greater).concat(this.sortTransactionsByValue(lesser), transactions[0]);
   }
 
   handleSearchChange(event){

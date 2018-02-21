@@ -1,7 +1,5 @@
 # eth-leaderboard-web3
 
-[DESCRIPTION]
-
 ## Getting Started
 1. Clone the repository and cd into it.
 
