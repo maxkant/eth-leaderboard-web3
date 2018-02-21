@@ -6,8 +6,7 @@ import LeaderBoard from './components/LeaderBoard.jsx';
 class App extends Component {
   render() {
     return (
-      <div className="Application">
-        
+      <div>
        <LeaderBoard />
       </div>
     );

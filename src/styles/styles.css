@@ -1,8 +1,23 @@
-.Application {
-  text-align: center;
+.main-container{
+  margin: 1rem;
+}
+.flex-container{
+	display: flex;
+  width: 100%;
+}
+.input{
+  margin: 0.5rem;
+}
+.left{
+	order: 1;
+	flex: 1;
+  flex-basis: auto;
+  padding: .5rem;
+  min-height: 666px;
 }
 
-.LeaderBoard {
-  margin-left: auto;
-  margin-right: auto;
+.right{
+	order: 1;
+	flex: 1;
+  padding: .5rem;
 }

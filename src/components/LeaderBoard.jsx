@@ -5,86 +5,150 @@ class LeaderBoard extends Component{
 
   constructor(props){
     super(props);
+    // Get Web3, currently only works with testrpc running on localhost:8545, need to add metamask, ropsten etc...
     const web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:8545'));
-    web3.eth.defaultAccount = web3.eth.accounts[0];
     this.state = {
-      address: '0x1dF62f291b2E969fB0849d99D9Ce41e2F137006e',
       web3: web3,
-      matchedTX: [],
+      addressToMatch: null,
+      tempAddress: null,
+      allTransactions: [],
+      matchedTransactions: [],
+      accounts: [],
     };
     this.handleSearchSubmit = this.handleSearchSubmit.bind(this);
     this.handleSearchChange = this.handleSearchChange.bind(this);
   }
-  async getTX(){
-    this.setState({matchedTX: []});
+
+  async getAllTransactions(nBlocksToSearch){
+    this.setState({allTransactions: []});
     const web3 = this.state.web3;
+    // get most recent block number
     const blockNumber = await web3.eth.getBlockNumber();
-    for (let i = 0; i < blockNumber; i++){
+    // initialize array to hold transactions
+    var allTransactions = [];
+    // calculate initial block number, set to 0 if the number of blocks to search is greater than the total number of blocks (shouldn't happen on the main net)
+    var startBlock = (blockNumber >= nBlocksToSearch) ? (blockNumber - nBlocksToSearch) : 0;
+    // loop over all blocks and grab transactions
+    for (let i = startBlock; i < blockNumber; i++){
       const block = await web3.eth.getBlock(i);
-      const nTX = await web3.eth.getBlockTransactionCount(i);
-      const txs = block.transactions;
-      for (let j = 0; j < nTX; j++){
-        const tx = txs[j];
+      const nTransactions = await web3.eth.getBlockTransactionCount(i);
+      const blockTransactions = block.transactions;
+      for (let j = 0; j < nTransactions; j++){
+        const tx = blockTransactions[j];
+        //get transactions details from hash
         const rawTX = await web3.eth.getTransaction(tx);
-        if ((rawTX.to === this.state.address) && rawTX.value !== '0'){
-          console.log(rawTX, rawTX.value);
-          var newTX = this.state.matchedTX.slice();
-          newTX = newTX.concat([rawTX]);
-          this.setState({
-            matchedTX: newTX,
-          });
-          //console.log(rawTX);
-        }
+        allTransactions = allTransactions.concat([rawTX]);
       }
+      this.setState({
+        allTransactions: allTransactions,
+      });
     }
   }
-  componentDidMount(){
-    this.getTX();
+
+  getMatchingTransactions(addressToMatch) {
+      //clear matchedTransactions
+      this.setState({matchedTransactions: [],});
+      var matchedTX = [];
+      // for each transaction check if the recipient matches our search address
+      const allTransactions = this.state.allTransactions;
+      for (let i = 0; i < allTransactions.length; i++){
+        const tx = allTransactions[i];
+        if (tx.to === addressToMatch){
+          matchedTX = matchedTX.concat([tx]);
+        }
+      }
+      this.setState({
+        matchedTransactions: matchedTX,
+      });
   }
+  async getAccounts(){
+    var accounts = [];
+    accounts = await this.state.web3.eth.getAccounts();
+    this.setState({accounts: accounts,});
+  }
+  componentDidMount(){
+    this.getAccounts();
+    this.getAllTransactions();
+  }
+
   handleSearchChange(event){
-    event.preventDefault();
     this.setState({
-      address: event.target.value,
+      tempAddress: event.target.value,
     });
   }
+
   handleSearchSubmit(event){
     event.preventDefault();
+    const tempAddress = this.state.tempAddress;
+    this.setState({
+      addressToMatch: tempAddress,
+    })
+    this.getMatchingTransactions(tempAddress);
     // checkValidity
-    this.getTX();
   }
-  render(){
+  renderSearch(){
+    return(
+      <form onSubmit = {this.handleSearchSubmit}>
+        <label>
+          Search for transactions to an account:
+          <input className = "input"
+            name = "address"
+            type = "string"
+            value = {this.state.adress}
+            onChange = {this.handleSearchChange}/>
+          <button> do it</button>
+        </label>
+      </form>
+    );
+  }
+  renderAccountList(){
     return(
       <div>
-        <h1> We made it! </h1>
-        <form onSubmit = {this.handleSearchSubmit}>
-          <label>
-            Search for transactions to an adress: 
-            <input
-              name = "address"
-              type = "string"
-              value = {this.state.adress}
-              onChange = {this.handleSearchChange}/>
-            <button> do it</button>
-          </label>
-        </form>
-        <table className = "LeaderBoard">
-          <tr>
-            <th>From</th>
-            <th> Value (wei)</th>
-          </tr>
-          {this.state.matchedTX.map((tx) => {
-            return(
-              <tr>
-                <th>{tx.from}</th>
-                <th>{tx.value}</th>
-              </tr>
-            )
-          })}
-        </table>
+        <h6> Available accounts: </h6>
+        {this.state.accounts.map((account) => {
+          return(
+            <h6>{account}</h6>
+          )
+        })}
       </div>
     );
   }
-
+  renderLeaderBoard(){
+    return(
+      <table className = "LeaderBoard">
+        <tr>
+          <th>#</th>
+          <th>From</th>
+          <th>Value (wei)</th>
+        </tr>
+        {this.state.matchedTransactions.map((tx, idx) => {
+          return(
+            <tr>
+              <th>{idx + 1}</th>
+              <th>{tx.from}</th>
+              <th>{tx.value}</th>
+            </tr>
+          )
+        })}
+      </table>
+    );
+  }
+  render(){
+    return(
+      <div className = "main-container">
+        <h1> You made it! </h1>
+        {this.renderSearch()}
+        <div className = "flex-container">
+          <div className = "left">
+            {this.renderAccountList()}
+          </div>
+          <div className = "right">
+          {this.state.addressToMatch? (this.renderLeaderBoard()) : ('Enter an address!')}
+          </div>
+        </div>
+      </div>
+    );
+  }
 }
 
 export default LeaderBoard;
